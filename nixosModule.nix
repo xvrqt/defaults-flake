@@ -70,4 +70,19 @@
     };
   };
 
+  # Users are typically added through the identities-flake
+  # Here is sensible, locked down root user as a default though
+  users = {
+    users = {
+      root = lib.mkDefault {
+        # Default Shell
+        shell = pkgs.zsh;
+        # Added to the list of sudoers
+        extraGroups = [ "networkmanager" "wheel" ];
+        # Disable logging in as root
+        hashedPassword = "!";
+        initialHashedPassword = "!";
+      };
+    };
+  };
 }
