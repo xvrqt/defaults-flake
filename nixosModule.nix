@@ -61,6 +61,14 @@
     shells = lib.mkDefault [ pkgs.zsh ];
   };
 
+  services = {
+    nixos-cli = {
+      enable = true;
+      prebuildOptionCache = true;
+      # config = {};
+    };
+  };
+
   # Allow sudoers to not invoke password
   security = {
     sudo = {
