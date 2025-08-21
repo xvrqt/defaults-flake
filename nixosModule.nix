@@ -43,10 +43,6 @@
     # Nix helper functions
     nh = {
       enable = true;
-      clean = {
-        enable = true;
-        extraArgs = "--keep 5 --keep-since 3d";
-      };
       flake = "/key/flake";
     };
     nix-index-database.comma.enable = lib.mkDefault true;
