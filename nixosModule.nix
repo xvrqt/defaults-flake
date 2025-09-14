@@ -1,11 +1,15 @@
 { pkgs, lib, ... }:
 {
-  # Enable NixOS Flakes
   nix = {
-    settings.experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
+    settings = {
+      # Enable NixOS Flakes
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      # Only allow those with admin privileges invoke Nix commands
+      allowed-users = [ "@wheel" ];
+    };
     # Optimise the Nix-Store once a day
     optimise = lib.mkDefault {
       automatic = true;
@@ -17,15 +21,16 @@
       options = "--delete-older-than 30d";
       dates = "daily";
     };
+
   };
 
-  # Set your time zone.
+  # Timezone to the West Coast (Best Coast) by default
   time.timeZone = lib.mkDefault "America/Los_Angeles";
 
   # Select internationalisation properties.
   i18n.defaultLocale = lib.mkDefault "en_US.UTF-8";
 
-  # Get specific with formatting
+  # Get specific with encoding
   i18n.extraLocaleSettings = lib.mkDefault {
     LC_ADDRESS = "en_US.UTF-8";
     LC_IDENTIFICATION = "en_US.UTF-8";
@@ -38,13 +43,18 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Run programs without nix-shell
   programs = {
     # Nix helper functions
     nh = {
-      enable = true;
-      flake = "/key/flake";
+      enable = lib.mkDefault true;
+      # Where I always mount my flake
+      flake = lib.mkDefault "/key/flake";
     };
+
+    # Run programs without nix-shell
+    # Usage: $ , cowsay "Hello"
+    # It will install cowsay temporily, run the program in your shell, and then
+    # remove it from your PATH again afterwards.
     nix-index-database.comma.enable = lib.mkDefault true;
   };
 
@@ -64,24 +74,58 @@
       # Pretty print system information upon shell login
       pkgs.hyfetch
     ];
+    # Remove all other default packages so nothing sneaks in
+    # Also, FUCK NANO
+    defaultPackages = lib.mkDefault [ ];
     # Permissible login shells (sh is implicitly included)
     shells = lib.mkDefault [ pkgs.zsh ];
   };
 
   services = {
+    # Useful for the option search
+    # Usage: nixos option -f <path-to-your-system-flake>
+    # Allows you to see what the final value of your configuration options are
     nixos-cli = {
-      enable = true;
-      prebuildOptionCache = true;
+      enable = lib.mkDefault true;
+      # Builds option cache on system rebuild
+      prebuildOptionCache = lib.mkDefault true;
       # config = {};
     };
   };
 
-  # Allow sudoers to not invoke password
+  # Allow sudoers to not require a password
   security = {
     sudo = {
       enable = lib.mkDefault true;
       # Don't challenge memebers of 'wheel'
       wheelNeedsPassword = lib.mkDefault false;
+    };
+    # Enable Linux Kernel Auditing
+    auditd = {
+      enable = lib.mkDefault true;
+      settings = {
+        # TODO default place is fine for now, but consider collating logs
+        # onto a special dev or volume in the future
+        # log_file = "<path>";
+        # 
+        # Number of log files to keep
+        num_logs = lib.mkDefault 8;
+        # Maximum logfile size, in MiB
+        max_log_file = lib.mkDefault 32;
+        # What to do when we're out of log files
+        max_log_file_action = lib.mkDefault "rotate";
+      };
+    };
+    audit = {
+      enable = lib.mkDefault true;
+      # -a exit,always -> Run audit when syscall is loaded, no matter what
+      # -F arch=b64 -> Only log syscalls made by 64bit processes
+      # -S execve -> Only monitor the execve system call flag
+      # Typically invoked by a shell, this monitors every attempt for a
+      # 64bit process to execute another program
+      rules = lib.mkDefault [
+        "-a exit,always -F arch=b64 -S execve"
+      ];
     };
   };
 
@@ -95,8 +139,8 @@
         # Added to the list of sudoers
         extraGroups = [ "networkmanager" "wheel" ];
         # Disable logging in as root
-        hashedPassword = "!";
-        initialHashedPassword = "!";
+        hashedPassword = lib.mkDefault "!";
+        initialHashedPassword = lib.mkDefault "!";
       };
     };
   };

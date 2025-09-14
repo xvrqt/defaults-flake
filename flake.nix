@@ -1,5 +1,6 @@
 {
   inputs = {
+    # Used to keep the other inputs in lock-step
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable-small";
 
     nix-cli.url = "github:nix-community/nixos-cli";
@@ -20,5 +21,7 @@
             ];
           };
       };
+
+      lib = import ./utils.nix;
     };
 }
