@@ -1,7 +1,4 @@
-{ lib, pkgs, ... }:
-let
-  utils = (import ./utils.nix { inherit pkgs; });
-in
+{ lib, pkgs, utils, ... }:
 {
   nix = {
     settings = {

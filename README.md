@@ -29,27 +29,3 @@ Add this flake to your NixOS Configuration list of modules flake inputs, and add
 ```
 
 This will set up the defaults. There are no custom options, because you can simply override the defaults set in this flake if necessary.
-
-## Utilities
-
-There are several utility functions I also bundled in this flake which allow you to override CFLAGS when building `gcc` derivations.
-
-```nix
-# Some Module
-{pkgs, inputs, ...}: let
-  # Import the functions using your own instance of nixpkgs to avoid pulling in
-  # yet another nixpkgs
-  utils = inputs.defaults.lib {inherit pkgs;};
-in
-{
-  environment.systemPackages = [
-    # This will override the CFLAGS and return the new derivation
-    # This will obviously have no effect on programs without CFLAGS but may
-    # trigger a local build of the project instead of retrieving from cache
-    # since it overrides the derivation
-    #
-    # Fastest cow talking this side of the Mississippi
-    (utils.optimizeForThisMachine pkgs.cowsay)
-  ];
-}
-```
