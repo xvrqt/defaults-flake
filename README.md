@@ -34,7 +34,7 @@ This will set up the defaults. There are no custom options, because you can simp
 
 There are several utility functions I also bundled in this flake which allow you to override CFLAGS when building `gcc` derivations.
 
-```
+```nix
 # Some Module
 {pkgs, inputs, ...}: let
   # Import the functions using your own instance of nixpkgs to avoid pulling in
