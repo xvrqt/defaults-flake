@@ -1,4 +1,7 @@
-{ pkgs, lib, ... }:
+{ lib, pkgs, ... }:
+let
+  utils = (import ./utils.nix { inherit pkgs; });
+in
 {
   nix = {
     settings = {
@@ -56,6 +59,9 @@
     # It will install cowsay temporily, run the program in your shell, and then
     # remove it from your PATH again afterwards.
     nix-index-database.comma.enable = lib.mkDefault true;
+
+    # Set the ssh package to be the hardened version of itself
+    ssh.package = lib.mkDefault (utils.compileTimeHardening pkgs.openssh);
   };
 
   # Packages every system needs 
@@ -70,9 +76,9 @@
     # These packages are automatically available to all users
     systemPackages = [
       # Default text editor
-      pkgs.helix
+      (utils.optimizeForThisMachine pkgs.helix)
       # Pretty print system information upon shell login
-      pkgs.hyfetch
+      (utils.optimizeForThisMachine pkgs.hyfetch)
     ];
     # Remove all other default packages so nothing sneaks in
     # Also, FUCK NANO

@@ -12,12 +12,12 @@
   outputs =
     { nix-cli, nix-index-database, ... }: {
       nixosModules = {
-        default = { lib, pkgs, config, ... }:
+        default = { lib, pkgs, ... }:
           {
             imports = [
               nix-cli.nixosModules.nixos-cli
               nix-index-database.nixosModules.nix-index
-              (import ./nixosModule.nix { inherit lib pkgs config; })
+              (import ./nixosModule.nix { inherit lib pkgs; })
             ];
           };
       };
