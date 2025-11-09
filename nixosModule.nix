@@ -59,6 +59,9 @@
 
     # Set the ssh package to be the hardened version of itself
     ssh.package = lib.mkDefault (utils.compileTimeHardening pkgs.openssh);
+
+    # Ensure a shell is enabled
+    zsh.enable = lib.mkDefault true;
   };
 
   # Packages every system needs 
