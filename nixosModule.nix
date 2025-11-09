@@ -69,6 +69,7 @@
       # (nano; priority 1000) to these environment variables 
       EDITOR = lib.mkOverride 990 "hx";
       VISUAL = lib.mkOverride 990 "hx";
+      SUDO_EDITOR = lib.mkOverride 990 "hx";
     };
     # These packages are automatically available to all users
     systemPackages = [
