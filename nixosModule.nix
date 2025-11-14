@@ -108,32 +108,32 @@
       wheelNeedsPassword = lib.mkDefault false;
     };
     # Enable Linux Kernel Auditing
-    auditd = {
-      enable = lib.mkDefault true;
-      settings = {
-        # TODO default place is fine for now, but consider collating logs
-        # onto a special dev or volume in the future
-        # log_file = "<path>";
-        # 
-        # Number of log files to keep
-        num_logs = lib.mkDefault 8;
-        # Maximum logfile size, in MiB
-        max_log_file = lib.mkDefault 32;
-        # What to do when we're out of log files
-        max_log_file_action = lib.mkDefault "rotate";
-      };
-    };
-    audit = {
-      enable = lib.mkDefault true;
-      # -a exit,always -> Run audit when syscall is loaded, no matter what
-      # -F arch=b64 -> Only log syscalls made by 64bit processes
-      # -S execve -> Only monitor the execve system call flag
-      # Typically invoked by a shell, this monitors every attempt for a
-      # 64bit process to execute another program
-      rules = lib.mkDefault [
-        "-a exit,always -F arch=b64 -S execve"
-      ];
-    };
+    # auditd = {
+    #   enable = lib.mkDefault true;
+    #   settings = {
+    #     # TODO default place is fine for now, but consider collating logs
+    #     # onto a special dev or volume in the future
+    #     # log_file = "<path>";
+    #     # 
+    #     # Number of log files to keep
+    #     num_logs = lib.mkDefault 8;
+    #     # Maximum logfile size, in MiB
+    #     max_log_file = lib.mkDefault 32;
+    #     # What to do when we're out of log files
+    #     max_log_file_action = lib.mkDefault "rotate";
+    #   };
+    # };
+    # audit = {
+    #   enable = lib.mkDefault true;
+    #   # -a exit,always -> Run audit when syscall is loaded, no matter what
+    #   # -F arch=b64 -> Only log syscalls made by 64bit processes
+    #   # -S execve -> Only monitor the execve system call flag
+    #   # Typically invoked by a shell, this monitors every attempt for a
+    #   # 64bit process to execute another program
+    #   rules = lib.mkDefault [
+    #     "-a exit,always -F arch=b64 -S execve"
+    #   ];
+    # };
   };
 
   # Users are typically added through the identities-flake
