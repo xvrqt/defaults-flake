@@ -22,7 +22,7 @@
     { nix-cli, flake-utils, nix-index-database, ... }:
     {
       nixosModules = {
-        default = { lib, pkgs, ... }:
+        default = { lib, pkgs, config, ... }:
           let
             utils = (import "${flake-utils}/default.nix" { inherit pkgs; });
           in
@@ -30,7 +30,7 @@
             imports = [
               nix-cli.nixosModules.nixos-cli
               nix-index-database.nixosModules.nix-index
-              (import ./nixosModule.nix { inherit lib pkgs utils; })
+              (import ./nixosModule.nix { inherit lib pkgs utils config; })
             ];
           };
       };
