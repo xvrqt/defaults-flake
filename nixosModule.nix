@@ -1,7 +1,67 @@
-{ lib, pkgs, utils, config, ... }:
+{ lib, pkgs, config, ... }:
+let
+  # Overrides a derivation to include new CFLAGS alongside existing CFLAGS
+  # flags is a list of a strings representing the CFLAGS to be set
+  optimizeWithFlags = pkg: flags:
+    pkgs.lib.overrideDerivation pkg (old:
+      let
+        newflags = pkgs.lib.foldl' (acc: x: "${acc} ${x}") "" flags;
+        oldflags =
+          if (pkgs.lib.hasAttr "NIX_CFLAGS_COMPILE" old)
+          then "${old.NIX_CFLAGS_COMPILE}"
+          else "";
+      in
+      {
+        NIX_CFLAGS_COMPILE = "${oldflags} ${newflags}";
+      });
+
+  # Ensure all possible optimizations for this machine
+  optimizeForThisMachine = pkg:
+    optimizeWithFlags pkg [
+      # Optimize level 3 (highest level)
+      "-O3"
+      # Optimize using specific microcode and ISA implementations for this machine
+      "-march=native"
+      # No relative pointer index offets (Position Independent Code)
+      "-fPIC"
+    ];
+
+  # Harden the code to make it less likely to be expoloited
+  compileTimeHardening = pkg:
+    optimizeWithFlags pkg [
+      # Warn when printf/scanf don't use string literals
+      "-Wformat"
+      "-Wformat-security"
+      "-Werror=format-security"
+      # Add overwrite canaries to buffers greater than 4 bytes
+      "-fstack-protector-strong"
+      "--param ssp-buffer-size=4"
+      # Add buffer overflow checks at compile and at runtime; no using %n in
+      # string formatting functions (e.g. printf()) unless they are read only
+      "-O2"
+      "-D_FORTIFY_SOURCE=2"
+      # No relative pointer index offets (Position Independent Code) and makes
+      # ASLR possible
+      "-fPIC"
+      # Adds interger overflow checking to prevent errors
+      "-fno-strict-overflow"
+    ];
+
+  # Optimize for Rust
+  optimizeRustPkg = pkg:
+    pkgs.lib.overrideDerivation pkg (old: {
+      RUSTFLAGS =
+        (old.RUSTFLAGS or "") + " -C target-cpu=native";
+    });
+in
 {
   options = {
     defaults = {
+      auditing = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable logging syscalls using autitd.";
+      };
       packages = {
         optimize = lib.mkOption {
           type = lib.types.bool;
@@ -19,8 +79,12 @@
 
   config =
     let
-      harden = pkg: (if config.defaults.packages.optimize then (utils.compileTimeHardening pkg) else pkg);
-      optimize = pkg: (if config.defaults.packages.optimize then (utils.optimizeForThisMachine pkg) else pkg);
+      harden = pkg: (if config.defaults.packages.optimize then (compileTimeHardening pkg) else pkg);
+      # I don't have any gcc programs, but you might
+      optimizeC = pkg: (if config.defaults.packages.optimize then (optimizeForThisMachine pkg) else pkg);
+      optimizeRust = pkg: (if config.defaults.packages.optimize then (optimizeRustPkg pkg) else pkg);
+      editor = config.defaults.editor;
+      auditCheck = config.defaults.auditing;
     in
     {
       nix = {
@@ -45,6 +109,8 @@
           dates = "daily";
         };
       };
+      # Only keep 10 generations maximum
+      boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
 
       # Timezone to the West Coast (Best Coast) by default
       time.timeZone = lib.mkDefault "America/Los_Angeles";
@@ -99,26 +165,29 @@
         # These packages are automatically available to all users
         systemPackages = [
           # Default text editor
-          (optimize pkgs.helix)
+          (optimizeRust pkgs.helix)
           # Pretty print system information upon shell login
-          (optimize pkgs.hyfetch)
+          (optimizeRust pkgs.hyfetch)
         ];
         # Remove all other default packages so nothing sneaks in
-        # Also, FUCK NANO
         defaultPackages = lib.mkDefault [ ];
         # Permissible login shells (sh is implicitly included)
         shells = lib.mkDefault [ pkgs.zsh ];
       };
 
       services = {
-        # Useful for the option search
-        # Usage: nixos option -f <path-to-your-system-flake>
-        # Allows you to see what the final value of your configuration options are
-        nixos-cli = {
+        openssh = {
           enable = lib.mkDefault true;
-          # Builds option cache on system rebuild
-          prebuildOptionCache = lib.mkDefault true;
-          # config = {};
+          settings = {
+            # Allows hostnames to be FQDN (sshd will check their DNS record matches)
+            UseDns = lib.mkDefault true;
+            # SSH should check the permissions of the identity files and directories
+            StrictModes = lib.mkDefault true;
+            # We don't need to log in as root
+            PermitRootLogin = lib.mkDefault "no";
+            # SSH Keys Only
+            PasswordAuthentication = lib.mkDefault false;
+          };
         };
       };
 
@@ -130,35 +199,30 @@
           wheelNeedsPassword = lib.mkDefault false;
         };
         # Enable Linux Kernel Auditing
-        # auditd = {
-        #   enable = lib.mkDefault true;
-        #   settings = {
-        #     # TODO default place is fine for now, but consider collating logs
-        #     # onto a special dev or volume in the future
-        #     # log_file = "<path>";
-        #     # 
-        #     # Number of log files to keep
-        #     num_logs = lib.mkDefault 8;
-        #     # Maximum logfile size, in MiB
-        #     max_log_file = lib.mkDefault 32;
-        #     # What to do when we're out of log files
-        #     max_log_file_action = lib.mkDefault "rotate";
-        #   };
-        # };
-        # audit = {
-        #   enable = lib.mkDefault true;
-        #   # -a exit,always -> Run audit when syscall is loaded, no matter what
-        #   # -F arch=b64 -> Only log syscalls made by 64bit processes
-        #   # -S execve -> Only monitor the execve system call flag
-        #   # Typically invoked by a shell, this monitors every attempt for a
-        #   # 64bit process to execute another program
-        #   rules = lib.mkDefault [
-        #     "-a exit,always -F arch=b64 -S execve"
-        #   ];
-        # };
+        auditd = lib.mkIf auditCheck {
+          enable = lib.mkDefault true;
+          settings = {
+            # Number of log files to keep
+            num_logs = lib.mkDefault 8;
+            # Maximum logfile size, in MiB
+            max_log_file = lib.mkDefault 32;
+            # What to do when we're out of log files
+            max_log_file_action = lib.mkDefault "rotate";
+          };
+        };
+        audit = lib.mkIf auditCheck {
+          enable = lib.mkDefault true;
+          # -a exit,always -> Run audit when syscall is loaded, no matter what
+          # -F arch=b64 -> Only log syscalls made by 64bit processes
+          # -S execve -> Only monitor the execve system call flag
+          # Typically invoked by a shell, this monitors every attempt for a
+          # 64bit process to execute another program
+          rules = lib.mkDefault [
+            "-a exit,always -F arch=b64 -S execve"
+          ];
+        };
       };
 
-      # Users are typically added through the identities-flake
       # Here is sensible, locked down root user as a default though
       users = {
         users = {
