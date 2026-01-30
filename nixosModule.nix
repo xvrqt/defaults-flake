@@ -176,14 +176,18 @@ in
       };
 
       services = {
-        # Useful for the option search
-        # Usage: nixos option -f <path-to-your-system-flake>
-        # Allows you to see what the final value of your configuration options are
-        nixos-cli = {
+        openssh = {
           enable = lib.mkDefault true;
-          # Builds option cache on system rebuild
-          prebuildOptionCache = lib.mkDefault true;
-          # config = {};
+          settings = {
+            # Allows hostnames to be FQDN (sshd will check their DNS record matches)
+            UseDns = lib.mkDefault true;
+            # SSH should check the permissions of the identity files and directories
+            StrictModes = lib.mkDefault true;
+            # We don't need to log in as root
+            PermitRootLogin = lib.mkDefault "no";
+            # SSH Keys Only
+            PasswordAuthentication = lib.mkDefault false;
+          };
         };
       };
 
