@@ -13,7 +13,7 @@
 
     # My flake utils, used for hardening and optimizing
     flake-utils = {
-      url = "github:xvrqt/flake-utils/blog";
+      url = "github:xvrqt/flake-utils";
       flake = false;
     };
 
@@ -22,21 +22,23 @@
   };
 
   outputs =
-    { nix-cli, flake-utils, wrapper, nixpkgs, nix-index-database, ... }: {
-      nixosModules = {
-        default = { lib, config, ... }:
-          wrapper.lib.eachDefaultSystem (system:
-            let
-              pkgs = nixpkgs.legacyPackages.${system};
-              utils = (import "${flake-utils}/default.nix" { inherit pkgs; });
-            in
-            {
-              imports = [
-                nix-cli.nixosModules.nixos-cli
-                nix-index-database.nixosModules.nix-index
-                (import ./nixosModule.nix { inherit lib pkgs utils config; })
-              ];
-            });
-      };
-    };
+    { nix-cli, flake-utils, wrapper, nixpkgs, nix-index-database, ... }:
+    wrapper.lib.eachDefaultSystem
+      (system: {
+        nixosModules =
+          {
+            default = { lib, config, ... }:
+              let
+                pkgs = nixpkgs.legacyPackages.${system};
+                utils = (import "${flake-utils}/default.nix" { inherit pkgs; });
+              in
+              {
+                imports = [
+                  nix-cli.nixosModules.nixos-cli
+                  nix-index-database.nixosModules.nix-index
+                  (import ./nixosModule.nix { inherit lib pkgs utils config; })
+                ];
+              };
+          };
+      });
 }

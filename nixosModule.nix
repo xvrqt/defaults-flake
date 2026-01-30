@@ -3,8 +3,8 @@
   options = {
     defaults = {
       editor = lib.mkOption {
-        type = lib.types.bool;
-        defaults = "helix";
+        type = lib.types.str;
+        default = "helix";
         description = "Preferred default editor";
       };
       auditing = lib.mkOption {
@@ -57,6 +57,8 @@
           dates = "daily";
         };
       };
+      # Only keep 10 generations maximum
+      boot.loader.systemd-boot.configurationLimit = 10;
 
       # Timezone to the West Coast (Best Coast) by default
       time.timeZone = lib.mkDefault "America/Los_Angeles";
@@ -116,7 +118,6 @@
           (optimize pkgs.hyfetch)
         ];
         # Remove all other default packages so nothing sneaks in
-        # Also, FUCK NANO
         defaultPackages = lib.mkDefault [ ];
         # Permissible login shells (sh is implicitly included)
         shells = lib.mkDefault [ pkgs.zsh ];
