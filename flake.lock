@@ -17,22 +17,6 @@
       }
     },
     "flake-utils": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1757897781,
-        "narHash": "sha256-+8a6FqD3lyCO6ddsxeQyVeVf7Os7QWwL16likOKUq8s=",
-        "owner": "xvrqt",
-        "repo": "flake-utils",
-        "rev": "19bc554b6668e084de00d11b1f099b4a2f2c98c0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "xvrqt",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
-    "flake-utils_2": {
       "inputs": {
         "systems": "systems"
       },
@@ -94,7 +78,7 @@
     },
     "nix-options-doc": {
       "inputs": {
-        "flake-utils": "flake-utils_2",
+        "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
       },
@@ -147,7 +131,6 @@
     },
     "root": {
       "inputs": {
-        "flake-utils": "flake-utils",
         "nix-cli": "nix-cli",
         "nix-index-database": "nix-index-database",
         "nixpkgs": "nixpkgs_2",
