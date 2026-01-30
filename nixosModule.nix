@@ -50,6 +50,16 @@ in
 {
   options = {
     defaults = {
+      editor = lib.mkOption {
+        type = lib.types.bool;
+        defaults = "helix";
+        description = "Preferred default editor";
+      };
+      auditing = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable logging syscalls using autitd.";
+      };
       packages = {
         optimize = lib.mkOption {
           type = lib.types.bool;
@@ -143,14 +153,20 @@ in
         variables = {
           # We use mkOverried 990 because NixOS be default sets a default value
           # (nano; priority 1000) to these environment variables 
-          EDITOR = lib.mkOverride 990 "hx";
-          VISUAL = lib.mkOverride 990 "hx";
-          SUDO_EDITOR = lib.mkOverride 990 "hx";
+          EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
+          VISUAL = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
+          SUDO_EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
         };
         # These packages are automatically available to all users
         systemPackages = [
           # Default text editor
+          <<<<<<< HEAD
           (optimizeRust pkgs.helix)
+          =======
+          (optimize pkgs."${editor}")
+          >>>>>>> 12
+          d5b92
+          (Initial Commit)
           # Pretty print system information upon shell login
           (optimizeRust pkgs.hyfetch)
         ];
@@ -183,6 +199,32 @@ in
           # Don't challenge memebers of 'wheel'
           wheelNeedsPassword = lib.mkDefault false;
         };
+        <<<<<<< HEAD
+          ====== =
+          # Enable Linux Kernel Auditing
+          auditd = lib.mkIf auditCheck {
+        enable = lib.mkDefault true;
+        settings = {
+          # Number of log files to keep
+          num_logs = lib.mkDefault 8;
+          # Maximum logfile size, in MiB
+          max_log_file = lib.mkDefault 32;
+          # What to do when we're out of log files
+          max_log_file_action = lib.mkDefault "rotate";
+        };
+      };
+      audit = lib.mkIf auditCheck {
+        enable = lib.mkDefault true;
+        # -a exit,always -> Run audit when syscall is loaded, no matter what
+        # -F arch=b64 -> Only log syscalls made by 64bit processes
+        # -S execve -> Only monitor the execve system call flag
+        # Typically invoked by a shell, this monitors every attempt for a
+        # 64bit process to execute another program
+        rules = lib.mkDefault [
+          "-a exit,always -F arch=b64 -S execve"
+        ];
+      };
+      >>>>>>> 12d5b92 (Initial Commit)
       };
 
       # Here is sensible, locked down root user as a default though
