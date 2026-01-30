@@ -19,7 +19,7 @@ Add this flake to your NixOS Configuration list of modules flake inputs, and add
         inherit pkgs;
         specialArgs = { inherit inputs; };
         modules = [
-          defaults.nixosModules.default  # <-- Important Bit
+          defaults.nixosModules.${system}.default  # <-- Important Bit
           ./my-nix-configuration.nix
           # etc...
         ];
@@ -28,4 +28,25 @@ Add this flake to your NixOS Configuration list of modules flake inputs, and add
 }
 ```
 
-This will set up the defaults. There are no custom options, because you can simply override the defaults set in this flake if necessary.
+## Options
+
+There are three options, which can you set using the following NixOS module.
+
+```nix
+{
+  defaults = {
+    # Whether or not to enable system wide auditing.
+    # Defaults to FALSE. I only enable it on servers.
+    auditing = false;
+
+    packages = {
+      # Whether to recompile your editor and hyfetch
+      # Defaults to TRUE.
+      optimize= true;
+      # Whether to recompile openssh with hardening options
+      # Defaults to TRUE.
+      hardening = true;
+    };
+  };
+}
+```

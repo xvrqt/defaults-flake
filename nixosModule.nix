@@ -57,11 +57,6 @@ in
 {
   options = {
     defaults = {
-      editor = lib.mkOption {
-        type = lib.types.str;
-        default = "helix";
-        description = "Preferred default editor";
-      };
       auditing = lib.mkOption {
         type = lib.types.bool;
         default = false;
@@ -163,14 +158,14 @@ in
         variables = {
           # We use mkOverried 990 because NixOS be default sets a default value
           # (nano; priority 1000) to these environment variables 
-          EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
-          VISUAL = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
-          SUDO_EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
+          EDITOR = lib.mkOverride 990 "hx";
+          VISUAL = lib.mkOverride 990 "hx";
+          SUDO_EDITOR = lib.mkOverride 990 "hx";
         };
         # These packages are automatically available to all users
         systemPackages = [
           # Default text editor
-          (optimizeRust pkgs."${editor}")
+          (optimizeRust pkgs.helix)
           # Pretty print system information upon shell login
           (optimizeRust pkgs.hyfetch)
         ];
