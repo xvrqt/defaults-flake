@@ -2,6 +2,16 @@
 {
   options = {
     defaults = {
+      editor = lib.mkOption {
+        type = lib.types.bool;
+        defaults = "helix";
+        description = "Preferred default editor";
+      };
+      auditing = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable logging syscalls using autitd.";
+      };
       packages = {
         optimize = lib.mkOption {
           type = lib.types.bool;
@@ -21,6 +31,8 @@
     let
       harden = pkg: (if config.defaults.packages.optimize then (utils.compileTimeHardening pkg) else pkg);
       optimize = pkg: (if config.defaults.packages.optimize then (utils.optimizeForThisMachine pkg) else pkg);
+      editor = config.defaults.editor;
+      auditCheck = config.defaults.auditing;
     in
     {
       nix = {
@@ -92,14 +104,14 @@
         variables = {
           # We use mkOverried 990 because NixOS be default sets a default value
           # (nano; priority 1000) to these environment variables 
-          EDITOR = lib.mkOverride 990 "hx";
-          VISUAL = lib.mkOverride 990 "hx";
-          SUDO_EDITOR = lib.mkOverride 990 "hx";
+          EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
+          VISUAL = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
+          SUDO_EDITOR = lib.mkOverride 990 (if editor == "helix" then "hx" else editor);
         };
         # These packages are automatically available to all users
         systemPackages = [
           # Default text editor
-          (optimize pkgs.helix)
+          (optimize pkgs."${editor}")
           # Pretty print system information upon shell login
           (optimize pkgs.hyfetch)
         ];
@@ -130,35 +142,30 @@
           wheelNeedsPassword = lib.mkDefault false;
         };
         # Enable Linux Kernel Auditing
-        # auditd = {
-        #   enable = lib.mkDefault true;
-        #   settings = {
-        #     # TODO default place is fine for now, but consider collating logs
-        #     # onto a special dev or volume in the future
-        #     # log_file = "<path>";
-        #     # 
-        #     # Number of log files to keep
-        #     num_logs = lib.mkDefault 8;
-        #     # Maximum logfile size, in MiB
-        #     max_log_file = lib.mkDefault 32;
-        #     # What to do when we're out of log files
-        #     max_log_file_action = lib.mkDefault "rotate";
-        #   };
-        # };
-        # audit = {
-        #   enable = lib.mkDefault true;
-        #   # -a exit,always -> Run audit when syscall is loaded, no matter what
-        #   # -F arch=b64 -> Only log syscalls made by 64bit processes
-        #   # -S execve -> Only monitor the execve system call flag
-        #   # Typically invoked by a shell, this monitors every attempt for a
-        #   # 64bit process to execute another program
-        #   rules = lib.mkDefault [
-        #     "-a exit,always -F arch=b64 -S execve"
-        #   ];
-        # };
+        auditd = lib.mkIf auditCheck {
+          enable = lib.mkDefault true;
+          settings = {
+            # Number of log files to keep
+            num_logs = lib.mkDefault 8;
+            # Maximum logfile size, in MiB
+            max_log_file = lib.mkDefault 32;
+            # What to do when we're out of log files
+            max_log_file_action = lib.mkDefault "rotate";
+          };
+        };
+        audit = lib.mkIf auditCheck {
+          enable = lib.mkDefault true;
+          # -a exit,always -> Run audit when syscall is loaded, no matter what
+          # -F arch=b64 -> Only log syscalls made by 64bit processes
+          # -S execve -> Only monitor the execve system call flag
+          # Typically invoked by a shell, this monitors every attempt for a
+          # 64bit process to execute another program
+          rules = lib.mkDefault [
+            "-a exit,always -F arch=b64 -S execve"
+          ];
+        };
       };
 
-      # Users are typically added through the identities-flake
       # Here is sensible, locked down root user as a default though
       users = {
         users = {
