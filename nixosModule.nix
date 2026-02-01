@@ -15,20 +15,13 @@ let
         NIX_CFLAGS_COMPILE = "${oldflags} ${newflags}";
       });
 
-  # Ensure all possible optimizations for this machine
-  optimizeForThisMachine = pkg:
+  # Harden the code to make it less likely to be expoloited
+  compileTimeHardening = pkg:
     optimizeWithFlags pkg [
-      # Optimize level 3 (highest level)
-      "-O3"
       # Optimize using specific microcode and ISA implementations for this machine
       "-march=native"
       # No relative pointer index offets (Position Independent Code)
       "-fPIC"
-    ];
-
-  # Harden the code to make it less likely to be expoloited
-  compileTimeHardening = pkg:
-    optimizeWithFlags pkg [
       # Warn when printf/scanf don't use string literals
       "-Wformat"
       "-Wformat-security"
@@ -57,11 +50,6 @@ in
 {
   options = {
     defaults = {
-      auditing = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable logging syscalls using autitd.";
-      };
       packages = {
         optimize = lib.mkOption {
           type = lib.types.bool;
@@ -79,12 +67,9 @@ in
 
   config =
     let
-      harden = pkg: (if config.defaults.packages.optimize then (compileTimeHardening pkg) else pkg);
+      harden = pkg: (if config.defaults.packages.harden then (compileTimeHardening pkg) else pkg);
       # I don't have any gcc programs, but you might
-      optimizeC = pkg: (if config.defaults.packages.optimize then (optimizeForThisMachine pkg) else pkg);
       optimizeRust = pkg: (if config.defaults.packages.optimize then (optimizeRustPkg pkg) else pkg);
-      editor = config.defaults.editor;
-      auditCheck = config.defaults.auditing;
     in
     {
       nix = {
@@ -197,29 +182,6 @@ in
           enable = lib.mkDefault true;
           # Don't challenge memebers of 'wheel'
           wheelNeedsPassword = lib.mkDefault false;
-        };
-        # Enable Linux Kernel Auditing
-        auditd = lib.mkIf auditCheck {
-          enable = lib.mkDefault true;
-          settings = {
-            # Number of log files to keep
-            num_logs = lib.mkDefault 8;
-            # Maximum logfile size, in MiB
-            max_log_file = lib.mkDefault 32;
-            # What to do when we're out of log files
-            max_log_file_action = lib.mkDefault "rotate";
-          };
-        };
-        audit = lib.mkIf auditCheck {
-          enable = lib.mkDefault true;
-          # -a exit,always -> Run audit when syscall is loaded, no matter what
-          # -F arch=b64 -> Only log syscalls made by 64bit processes
-          # -S execve -> Only monitor the execve system call flag
-          # Typically invoked by a shell, this monitors every attempt for a
-          # 64bit process to execute another program
-          rules = lib.mkDefault [
-            "-a exit,always -F arch=b64 -S execve"
-          ];
         };
       };
 
