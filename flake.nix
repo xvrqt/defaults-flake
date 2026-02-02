@@ -21,15 +21,19 @@
     {
 
       nixosModules = forAllSystems
-        (pkgs: {
-          default = { lib, config, ... }: {
-            imports = [
-              nix-index-database.nixosModules.nix-index
-              (import ./nixosModule.nix {
-                inherit lib pkgs config;
-              })
-            ];
-          };
-        });
+        (pkgs:
+          let
+            lib = pkgs.lib;
+          in
+          {
+            default = { config, ... }: {
+              imports = [
+                nix-index-database.nixosModules.nix-index
+                (import ./nixosModule.nix {
+                  inherit lib pkgs config;
+                })
+              ];
+            };
+          });
     };
 }
