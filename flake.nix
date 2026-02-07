@@ -9,31 +9,19 @@
   };
 
   outputs =
-    { nixpkgs, nix-index-database, ... }:
-    let
-      forAllSystems = function:
-        nixpkgs.lib.genAttrs [
-          "x86_64-linux"
-          "aarch64-linux"
-        ]
-          (system: function nixpkgs.legacyPackages.${system});
-    in
-    {
-
-      nixosModules = forAllSystems
-        (pkgs:
-          let
-            lib = pkgs.lib;
-          in
-          {
-            default = { config, ... }: {
-              imports = [
-                nix-index-database.nixosModules.nix-index
-                (import ./nixosModule.nix {
-                  inherit lib pkgs config;
-                })
-              ];
-            };
-          });
+    { nixpkgs, nix-index-database, ... }: {
+      nixosModules.default = { pkgs, config, ... }:
+        let
+          pinnedPkgs = nixpkgs.legacyPackages.${pkgs.system};
+        in
+        {
+          imports = [
+            nix-index-database.nixosModules.nix-index
+            (import ./nixosModule.nix {
+              inherit config;
+              pkgs = pinnedPkgs;
+            })
+          ];
+        };
     };
 }
