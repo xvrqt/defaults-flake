@@ -52,16 +52,6 @@ in
 {
   options = {
     defaults = {
-      editor = lib.mkOption {
-        type = lib.types.bool;
-        defaults = "helix";
-        description = "Preferred default editor";
-      };
-      auditing = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Enable logging syscalls using autitd.";
-      };
       packages = {
         optimize = lib.mkOption {
           type = lib.types.bool;
