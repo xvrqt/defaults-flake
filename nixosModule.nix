@@ -2,6 +2,9 @@
 let
   lib = pkgs.lib;
 
+  remoteBuilds = config.defaults.packages.remoteBuilds;
+  buildRemotes = config.defaults.packages.buildRemotes;
+
   # Overrides a derivation to include new CFLAGS alongside existing CFLAGS
   # flags is a list of a strings representing the CFLAGS to be set
   optimizeWithFlags = pkg: flags:
@@ -50,22 +53,10 @@ let
     });
 in
 {
-  options = {
-    defaults = {
-      packages = {
-        optimize = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Optimize the default packages for this machine.";
-        };
-        harden = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Harden the default packages for this machine.";
-        };
-      };
-    };
-  };
+  imports = [
+    # Sets up the config options for this flake
+    ./options.nix
+  ];
 
   config =
     let
@@ -83,7 +74,24 @@ in
           ];
           # Only allow those with admin privileges invoke Nix commands
           allowed-users = [ "@wheel" ];
+
+          # For remote builders
+          trusted-users = lib.mkIf buildRemotes [ "crow" ];
+          # For building on remote machines
+          builders-use-substitutes = lib.mkDefault remoteBuilds;
         };
+        # For building on remote machines
+        distributedBuilds = lib.mkDefault remoteBuilds;
+        buildMachines = lib.mkDefault [
+          {
+            hostName = "nyaa";
+            sshUser = "crow";
+            sshKey = config.age.secrets.sshPrivateKey.path;
+            system = pkgs.stdenv.hostPlatform.system;
+            supportedFeatures = [ "nixos-test" "big-parallel" "kvm" ];
+          }
+        ];
+
         # Optimise the Nix-Store once a day
         optimise = lib.mkDefault {
           automatic = true;
@@ -95,6 +103,8 @@ in
           options = "--delete-older-than 30d";
           dates = "daily";
         };
+
+
       };
       # Only keep 10 generations maximum
       boot.loader.systemd-boot.configurationLimit = lib.mkDefault 10;
